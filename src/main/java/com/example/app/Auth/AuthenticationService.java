@@ -7,11 +7,11 @@ import com.example.app.User.UserEntity;
 import com.example.app.User.UserRepository;
 import com.example.app.Validation.ValidationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 
 
@@ -35,7 +35,7 @@ public class AuthenticationService {
             throw new IllegalArgumentException("invalid email");
         }
         if (!validationService.isValidPhoneNumber(request.getPhoneNumber())){
-            throw new IllegalArgumentException("invalid phoneNumber");
+            throw new IllegalArgumentException("invalid phone number");
         }
 
         UserEntity user = UserEntity.builder()
@@ -62,9 +62,9 @@ public class AuthenticationService {
                         request.getPassword()
                 )
         );
-        //todo handle exception
+
         var user = userRepository.findCustomerByEmail(request.getEmail())
-                .orElseThrow();
+                .orElseThrow(() -> new AccessDeniedException("User not found"));
         return generateToken(user);
 
     }
