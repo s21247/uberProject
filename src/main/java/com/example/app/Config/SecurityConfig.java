@@ -1,5 +1,6 @@
 package com.example.app.Config;
 
+import com.example.app.RoleAndPrivilege.Roles;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> {
                     registry.requestMatchers("/api/auth/**").permitAll();
+                    registry.requestMatchers("api/customer/**").hasRole("CLIENT");
+                    registry.requestMatchers("/api/location/**").hasRole("CLIENT");
                     registry.anyRequest().authenticated();
                 })
                 .sessionManagement(session -> {

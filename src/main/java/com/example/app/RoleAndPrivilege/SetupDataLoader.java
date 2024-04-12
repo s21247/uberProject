@@ -26,13 +26,13 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
     public void onApplicationEvent(ContextRefreshedEvent event) {
         if (alreadySetup)
             return;
-        final PrivilegeEntity canDrive = createPrivilegeIfNotFound("CAN_RIDE");
-        final PrivilegeEntity canBookARide = createPrivilegeIfNotFound("CAN_BOOK_RIDE");
+        final PrivilegeEntity canDrive = createPrivilegeIfNotFound(Privileges.CAN_RIDE.name());
+        final PrivilegeEntity canBookARide = createPrivilegeIfNotFound(Privileges.CAN_BOOK_RIDE.name());
 
         final List<PrivilegeEntity> clientPrivileges = new ArrayList<>(Arrays.asList(canBookARide));
         final List<PrivilegeEntity> driverPrivileges = new ArrayList<>(Arrays.asList(canBookARide, canDrive));
-        final RolesEntity driverRole = createRoleIfNotFound("ROLE_DRIVER", driverPrivileges);
-        createRoleIfNotFound("ROLE_CLIENT", clientPrivileges);
+        final RolesEntity driverRole = createRoleIfNotFound(Roles.ROLE_DRIVER.name(), driverPrivileges);
+        createRoleIfNotFound(Roles.ROLE_CLIENT.name(), clientPrivileges);
 
         createUserIfNotFound("test", "test", "test@test.com",
                 "test", "123123123", new ArrayList<>(Arrays.asList(driverRole)));
@@ -61,7 +61,7 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
     }
 
     @Transactional
-    public UserEntity createUserIfNotFound(final String firstName, final String lastName, final String email,
+    public void createUserIfNotFound(final String firstName, final String lastName, final String email,
                                            final String password, final String phoneNumber, final Collection<RolesEntity> roles) {
         UserEntity user = userRepository.findByEmail(email);
         if (user == null) {
@@ -74,8 +74,7 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
                     .build();
         }
         user.setRoles(roles);
-        user = userRepository.save(user);
-        return user;
+        userRepository.save(user);
     }
 
 }
