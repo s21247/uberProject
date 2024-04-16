@@ -25,7 +25,6 @@ public class RolesEntity {
     private String name;
 
     @ManyToMany(mappedBy = "roles")
-    // test
     @JsonManagedReference
     private Collection<UserEntity> users;
 

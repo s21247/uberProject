@@ -3,12 +3,11 @@ package com.example.app.GeoIP;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,9 +17,25 @@ public class GeoIPController {
     private final GeoIPLocationService geoIPLocationService;
 
     //todo In production mode, extract the IP address from HttpServletRequest without passing it as a parameter
-    @GetMapping("/geoIP/{ipAddress}")
-    public GeoIP getLocation (@PathVariable String ipAddress, HttpServletRequest request)
+    @GetMapping("/geoIP/{id}/{ipAddress}")
+    public GeoIPEntity getLocation (@PathVariable Long id, @PathVariable String ipAddress, HttpServletRequest request)
         throws IOException, GeoIp2Exception {
-        return geoIPLocationService.getIpLocation(ipAddress,request);
+        return geoIPLocationService.getIpLocation(id, ipAddress,request);
+    }
+
+    @PutMapping("/updateIsActive/{id}")
+    public ResponseEntity<?> updateIsActive(@PathVariable Long id) {
+        geoIPLocationService.updateIsActive(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/driver/getAllActiveClients")
+    public List<GeoIPEntity> getAllActiveClientUsers() {
+        return geoIPLocationService.findAllActiveUsers();
+    }
+
+    @GetMapping("/client/getAllActiveDrivers")
+    public List<GeoIPEntity> getAllActiveDriverUsers() {
+        return geoIPLocationService.findAllActiveDriverUsers();
     }
 }

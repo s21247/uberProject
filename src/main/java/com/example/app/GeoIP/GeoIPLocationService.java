@@ -1,21 +1,26 @@
 package com.example.app.GeoIP;
 
+import com.example.app.User.UserEntity;
+import com.example.app.User.UserRepository;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class GeoIPLocationService implements GeoIPLocationRepository{
 
     private final DatabaseReader databaseReader;
-    private static final String UNKNOWN = "UNKNOWN";
+    private final UserRepository userRepository;
+    private final GeoIPRepository geoIPRepository;
 
     /**
      * get user position by ip address
@@ -25,10 +30,12 @@ public class GeoIPLocationService implements GeoIPLocationRepository{
      * @throws IOException     if local database city not exist
      * @throws GeoIp2Exception if cannot get info by ip address
      */
+    @Transactional
     @Override
-    public GeoIP getIpLocation(String ip, HttpServletRequest request) throws IOException, GeoIp2Exception {
-        GeoIP position = new GeoIP();
+    public GeoIPEntity getIpLocation(Long id, String ip, HttpServletRequest request) throws IOException, GeoIp2Exception {
+        GeoIPEntity position = null;
         String location;
+        var optionalUser = userRepository.findById(id);
 
         InetAddress ipAddress = InetAddress.getByName(ip);
 
@@ -39,12 +46,42 @@ public class GeoIPLocationService implements GeoIPLocationRepository{
             String country = (cityResponse.getCountry() != null) ? cityResponse.getCountry().getName() : "";
 
             location = String.format("%s, %s, %s", continent, country, cityResponse.getCity().getName());
-            position.setCity(cityResponse.getCity().getName());
-            position.setFullLocation(location);
-            position.setLatitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLatitude() : 0);
-            position.setLongitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLongitude() : 0);
-            position.setIpAddress(ip);
+            if (optionalUser.isPresent()) {
+                UserEntity user = optionalUser.get();
+                if(user.getGeoIPEntity() != null) {
+                    position = user.getGeoIPEntity();
+                }else {
+                    position = new GeoIPEntity();
+                }
+                position.setCity(cityResponse.getCity().getName());
+                position.setFullLocation(location);
+                position.setLatitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLatitude() : 0);
+                position.setLongitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLongitude() : 0);
+                position.setIpAddress(ip);
+                user.setGeoIPEntity(position);
+                position.setCustomer(user);
+            }
         }
+
         return position;
+    }
+
+    @Override
+    public void updateIsActive(Long id) {
+        var optionalGeoIP = geoIPRepository.findLocationById(id);
+
+        if(optionalGeoIP.isPresent()){
+            GeoIPEntity geoIP = optionalGeoIP.get();
+            geoIP.setActive(!geoIP.isActive());
+            geoIPRepository.save(geoIP);
+        }
+    }
+
+    public List<GeoIPEntity> findAllActiveUsers() {
+        return geoIPRepository.findAllActiveClientUsers();
+    }
+
+    public List<GeoIPEntity> findAllActiveDriverUsers() {
+        return geoIPRepository.findAllActiveDriverUsers();
     }
 }

@@ -1,20 +1,18 @@
 package com.example.app.User;
 
+import com.example.app.GeoIP.GeoIPEntity;
 import com.example.app.RoleAndPrivilege.RolesEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,6 +23,12 @@ public class UserEntity implements UserDetails {
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    @JsonBackReference
+    private GeoIPEntity geoIPEntity;
+
     @Column(
             name = "first_Name",
             nullable = false,
@@ -59,6 +63,12 @@ public class UserEntity implements UserDetails {
             columnDefinition = "TEXT"
     )
     private String phoneNumber;
+
+    @Column(
+            name = "isDriver",
+            nullable = false
+    )
+    private boolean isDriver;
 
 
     @ManyToMany
@@ -102,4 +112,5 @@ public class UserEntity implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 }

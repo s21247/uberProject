@@ -31,6 +31,7 @@ public class SecurityConfig {
                     registry.requestMatchers("/api/auth/**").permitAll();
                     registry.requestMatchers("api/customer/**").hasRole("CLIENT");
                     registry.requestMatchers("/api/location/**").hasRole("CLIENT");
+                    registry.requestMatchers("api/location/driver/**").hasRole("DRIVER");
                     registry.anyRequest().authenticated();
                 })
                 .sessionManagement(session -> {
