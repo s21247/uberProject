@@ -8,5 +8,7 @@ import java.io.IOException;
 
 @Repository
 public interface GeoIPLocationRepository {
-    GeoIP getIpLocation(String ip, HttpServletRequest request) throws IOException, GeoIp2Exception;
+    GeoIPEntity getIpLocation(Long id, String ip, HttpServletRequest request) throws IOException, GeoIp2Exception;
+    void updateIsActive(Long id);
+
 }

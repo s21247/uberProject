@@ -12,7 +12,7 @@ import lombok.*;
 @Setter
 @Entity
 @Table(name = "Location")
-public class GeoIP {
+public class GeoIPEntity {
 
     @Id
     @Column(name = "customer_id")

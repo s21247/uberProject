@@ -44,6 +44,7 @@ public class AuthenticationService {
                     .email(request.getEmail())
                     .password(passwordEncoder.encode(request.getPassword()))
                     .phoneNumber(request.getPhoneNumber())
+                    .isDriver(request.isDriver())
                     .build();
         if (request.isDriver()) {
             user.setRoles(Arrays.asList(roleRepository.findByName(Roles.ROLE_DRIVER.name())));

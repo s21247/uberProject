@@ -3,13 +3,12 @@ package com.example.app.User;
 import com.example.app.Validation.ValidationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -84,7 +83,7 @@ public class UserService {
         userRepository.deleteById(user.getId());
     }
 
-    private UserEntity findAuthenticatedUser() {
+    public UserEntity findAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
         return userRepository.findByEmail(userEmail);
