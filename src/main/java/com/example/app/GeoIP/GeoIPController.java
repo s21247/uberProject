@@ -23,6 +23,11 @@ public class GeoIPController {
         return geoIPLocationService.getIpLocation(id, ipAddress,request);
     }
 
+    @GetMapping("/driver/getDriverById/{id}")
+    public GeoIPEntity getDriverById(@PathVariable Long id) {
+        return geoIPLocationService.getDriverById(id);
+    }
+
     @PutMapping("/updateIsActive/{id}")
     public ResponseEntity<?> updateIsActive(@PathVariable Long id) {
         geoIPLocationService.updateIsActive(id);

@@ -66,6 +66,15 @@ public class GeoIPLocationService implements GeoIPLocationRepository{
         return position;
     }
 
+    public GeoIPEntity getDriverById(Long id) {
+        var optionalGeoIP = geoIPRepository.findById(id);
+        GeoIPEntity geoIP = null;
+        if (optionalGeoIP.isPresent()) {
+             geoIP = optionalGeoIP.get();
+        }
+        return geoIP;
+    }
+
     @Override
     public void updateIsActive(Long id) {
         var optionalGeoIP = geoIPRepository.findLocationById(id);
