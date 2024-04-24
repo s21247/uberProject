@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.util.List;
 
@@ -28,7 +30,7 @@ public class GeoIPLocationService implements GeoIPLocationRepository{
      * @param ip String ip address
      * @return UserPositionDTO model
      * @throws IOException     if local database city not exist
-     * @throws GeoIp2Exception if cannot get info by ip address
+     * @throws GeoIp2Exception if you cannot get info by ip address
      */
     @Transactional
     @Override
@@ -55,8 +57,12 @@ public class GeoIPLocationService implements GeoIPLocationRepository{
                 }
                 position.setCity(cityResponse.getCity().getName());
                 position.setFullLocation(location);
-                position.setLatitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLatitude() : 0);
-                position.setLongitude((cityResponse.getLocation() != null) ? cityResponse.getLocation().getLongitude() : 0);
+                double latitude = (cityResponse.getLocation() != null) ? cityResponse.getLocation().getLatitude() : 0;
+                double longitude = (cityResponse.getLocation() != null) ? cityResponse.getLocation().getLongitude() : 0;
+                latitude = BigDecimal.valueOf(latitude).setScale(2, RoundingMode.HALF_UP).doubleValue();
+                longitude = BigDecimal.valueOf(longitude).setScale(2, RoundingMode.HALF_UP).doubleValue();
+                position.setLatitude(latitude);
+                position.setLongitude(longitude);
                 position.setIpAddress(ip);
                 user.setGeoIPEntity(position);
                 position.setCustomer(user);
