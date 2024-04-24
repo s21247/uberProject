@@ -2,18 +2,17 @@ package com.example.app.Distance;
 
 import lombok.RequiredArgsConstructor;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @RequiredArgsConstructor
 public class GeographicGraph {
 
     private Map<Coordinate, Map<Coordinate, Double>> graph;
 
-    public GeographicGraph(List<GeoIPWithTravelInfo> vertices) {
+    public GeographicGraph(List<GeoIPWithTravelInfo> vertices, GeoIPWithTravelInfo user) {
         this.graph = new HashMap<>();
+        Coordinate source = new Coordinate(user.getId(), user.getLongitude(), user.getLatitude());
+        addVertex(source);
 
         for (GeoIPWithTravelInfo vertex : vertices) {
             Coordinate coordinate = new Coordinate(vertex.getId(), vertex.getLongitude(), vertex.getLatitude());
@@ -27,7 +26,23 @@ public class GeographicGraph {
         }
     }
 
+    public Set<Coordinate> getVertices() {
+        return  graph.keySet();
+    }
+
+    public Set<Map.Entry<Coordinate, Double>> getEdges(Coordinate vertex) {
+        Map<Coordinate, Double> edgesForVertex = graph.get(vertex);
+        if (edgesForVertex != null) {
+            return edgesForVertex.entrySet();
+        } else {
+            return Collections.emptySet();
+        }
+    }
+
     public void addEdge(Coordinate source, Coordinate destination, double weight) {
+        if (!graph.containsKey(destination)) {
+            addVertex(destination);
+        }
         graph.get(source).put(destination, weight);
     }
 

@@ -11,6 +11,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @RequiredArgsConstructor
@@ -19,7 +21,7 @@ public class DistanceService {
 
     final String baseUrl = "https://api.openrouteservice.org/v2/matrix/driving-car"; // Profile: driving-car
     @Value("${api_openrouteservice_key}")
-    final private String API_KEY;
+    private String API_KEY;
 
     private final GeoIPLocationService geoIPLocationService;
     private final RestTemplate restTemplate;
@@ -61,29 +63,46 @@ public class DistanceService {
 
         List<TravelInfo> travelInfoList = new ArrayList<>();
 
-        for (int i = 0; i < destinationsNode.size(); i++) {
-            TravelInfo travelInfo = new TravelInfo();
-            travelInfo.setDuration(durationsNode.get(i).asDouble());
-            travelInfo.setLongitude(destinationsNode.get("location").get(0).asDouble());
-            travelInfo.setLatitude(destinationsNode.get("location").get(1).asDouble());
-            travelInfo.setSnappedDistance(destinationsNode.get("snapped_distance").asDouble());
-            travelInfoList.add(travelInfo);
-        }
-        return travelInfoList;
+        if (durationsNode != null && durationsNode.isArray() && destinationsNode != null && destinationsNode.isArray()) {
+            for (int i = 0; i < destinationsNode.size(); i++) {
+                JsonNode destinationNode = destinationsNode.get(i);
+                JsonNode locationNode = destinationNode.get("location");
+                JsonNode snappedDistanceNode = destinationNode.get("snapped_distance");
+                double duration = durationsNode.get(0).get(i).asDouble();
 
+                if (locationNode != null && locationNode.isArray() && locationNode.size() >= 2 && snappedDistanceNode != null && snappedDistanceNode.isDouble()) {
+                    double longitude = locationNode.get(0).asDouble();
+                    double latitude = locationNode.get(1).asDouble();
+                    double snappedDistance = snappedDistanceNode.asDouble();
+
+                    TravelInfo travelInfo = new TravelInfo();
+                    travelInfo.setLongitude(BigDecimal.valueOf(longitude).setScale(2, RoundingMode.HALF_UP).doubleValue());
+                    travelInfo.setLatitude(BigDecimal.valueOf(latitude).setScale(2, RoundingMode.HALF_UP).doubleValue());
+                    travelInfo.setSnappedDistance(snappedDistance);
+                    travelInfo.setDuration(duration);
+                    travelInfoList.add(travelInfo);
+                } else {
+                    System.err.println("There is an issue processing destination data");
+                }
+            }
+        } else {
+            System.err.println("Duration array or destination array not initialized from outside API");
+        }
+
+        return travelInfoList;
     }
 
     public List<GeoIPWithTravelInfo> mergeLists(List<TravelInfo> travelInfoList, List<GeoIPEntity> geoIPEntityList ) {
-        Map<List<Double>, GeoIPEntity> geoIPMap = new HashMap<>();
+        Map<GeoCoordinate, GeoIPEntity> geoIPMap = new HashMap<>();
 
         for (GeoIPEntity geoIP : geoIPEntityList) {
-            List<Double> key = Arrays.asList(geoIP.getLatitude(), geoIP.getLongitude());
+            GeoCoordinate key = new GeoCoordinate(geoIP.getLongitude(), geoIP.getLatitude());
             geoIPMap.put(key, geoIP);
         }
 
         List<GeoIPWithTravelInfo> mergedList = new ArrayList<>();
         for (TravelInfo travelInfo : travelInfoList) {
-            List<Double> key = Arrays.asList(travelInfo.getLatitude(), travelInfo.getLongitude());
+            GeoCoordinate key = new GeoCoordinate(travelInfo.getLongitude(), travelInfo.getLatitude());
             GeoIPEntity geoIPEntity = geoIPMap.get(key);
             if (geoIPEntity != null) {
                 GeoIPWithTravelInfo geoIPWithTravelInfo = new GeoIPWithTravelInfo();
@@ -100,29 +119,37 @@ public class DistanceService {
 
     }
 
-    public void initializeGraph(Long id, List<GeoIPEntity> geoIPEntityList) throws JsonProcessingException {
+    public GeographicGraph initializeGraph(Long id, List<GeoIPEntity> geoIPEntityList) throws JsonProcessingException {
         List<TravelInfo> travelInfoList = getDistancesFromOpenRouteService(geoIPEntityList, id);
         List<GeoIPWithTravelInfo> mergedList = mergeLists(travelInfoList, geoIPEntityList);
 
-        GeographicGraph graph = new GeographicGraph(mergedList);
-
+        GeoIPEntity driver = geoIPLocationService.getDriverById(id);
         GeoIPWithTravelInfo source = null;
-        for (GeoIPWithTravelInfo element : mergedList) {
-            if(element.getDuration() == 0) {
-                source = element;
-                break;
-            }
+        if (driver != null) {
+            source = new GeoIPWithTravelInfo();
+            source.setId(driver.getId());
+            source.setLatitude(driver.getLatitude());
+            source.setLongitude(driver.getLongitude());
+            source.setDuration(0.0);
+            source.setSnapped_distance(0.0);
         }
-        if (source != null) {
-            for (int i = 0; i < mergedList.size(); i++) {
-                GeoIPWithTravelInfo destination = mergedList.get(i);
-                if(destination != source && destination.getDuration() != 0) {
+        return getGeographicGraph(source, mergedList);
+    }
+
+    private static GeographicGraph getGeographicGraph(GeoIPWithTravelInfo source, List<GeoIPWithTravelInfo> mergedList) {
+        GeographicGraph graph = null;
+        if(source != null && !mergedList.isEmpty()) {
+             graph = new GeographicGraph(mergedList, source);
+
+            for (GeoIPWithTravelInfo destination : mergedList) {
+                if (destination != source && destination.getDuration() != 0) {
                     GeographicGraph.Coordinate sourceCoordinate = new GeographicGraph.Coordinate(source.getId(), source.getLongitude(), source.getLatitude());
-                    GeographicGraph.Coordinate destinationCoordinate = new GeographicGraph.Coordinate(destination.getId(), destination.getLongitude(),destination.getLatitude());
+                    GeographicGraph.Coordinate destinationCoordinate = new GeographicGraph.Coordinate(destination.getId(), destination.getLongitude(), destination.getLatitude());
                     graph.addEdge(sourceCoordinate, destinationCoordinate, destination.getSnapped_distance());
                 }
             }
         }
+        return graph;
     }
 
 
